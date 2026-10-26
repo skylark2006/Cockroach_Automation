@@ -101,6 +101,8 @@ def print_help():
   M0 X50 Y30 Z10                绝对毫米
   POS / P                       查询坐标
   SPEED500                      设置速度
+  HOME / HX / HY / HZ           回零（Z -> Y -> X）
+  ZERO / R                      坐标清零（不移动）
   A [N]                         快速下降，不转钻头（默认 500 步）
   DRILL OFF / STATUS            关钻头/状态
   TZ / TE / TD                  转盘设零/使能/失能
@@ -127,6 +129,23 @@ def print_help():
 
 def _manual(ser, line):
     up = line.strip().upper()
+    if up in ('HOME', 'HX', 'HY', 'HZ'):
+        markers = {
+            'HOME': ('HOME DONE', 'FAIL'),
+            'HX': ('HOMED X', 'FAIL'),
+            'HY': ('HOMED Y', 'FAIL'),
+            'HZ': ('HOMED Z', 'FAIL'),
+        }
+        send(ser, up)
+        out = read_response(ser, markers=markers[up], timeout=120)
+        print(out, end='')
+        if 'FAIL' in (out or ''):
+            print(f'{up}: 回零失败，请检查限位/接线')
+        return True
+    if up in ('ZERO', 'R'):
+        send(ser, up)
+        print(read_response(ser, timeout=0.5), end='')
+        return True
     if up in ('POS', 'P') or re.fullmatch(r'[XYZB]\s*-?\d+', up) or up.startswith(('G0', 'M0')):
         cmd = normalize_motion_command(line)
         send(ser, cmd)
