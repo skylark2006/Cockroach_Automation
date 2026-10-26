@@ -33,6 +33,8 @@ from serial_motion import (
 from turntable import Turntable, handle_turntable
 from force_sensor import ForceSensor, load_config as load_sensor_config
 from settings import TURNTABLE_PORT, TURNTABLE_BAUD
+from vision_workflows import run_automatic_vision, run_visual_head
+import serial_motion as motion
 import drill_workflows as wf
 
 
@@ -103,6 +105,10 @@ def print_help():
   SPEED500                      设置速度
   HOME / HX / HY / HZ           回零（Z -> Y -> X）
   ZERO / R                      坐标清零（不移动）
+  VISION / VIS                  归零→视觉识别→移动目标 XY
+  VIS_FAST / VISF               已确认零点时跳过归零，视觉识别
+  VIS_HEAD                      归零并识别头部 4 点
+  VIS_HEAD_FAST / VIS_HEADF     跳过归零，再次识别头部
   A [N]                         快速下降，不转钻头（默认 500 步）
   DRILL OFF / STATUS            关钻头/状态
   TZ / TE / TD                  转盘设零/使能/失能
@@ -141,10 +147,15 @@ def _manual(ser, line):
         print(out, end='')
         if 'FAIL' in (out or ''):
             print(f'{up}: 回零失败，请检查限位/接线')
+        if up == 'HOME':
+            motion.vision_reference_ready = 'HOME DONE' in (out or '') and 'FAIL' not in (out or '')
+        else:
+            motion.vision_reference_ready = False
         return True
     if up in ('ZERO', 'R'):
         send(ser, up)
         print(read_response(ser, timeout=0.5), end='')
+        motion.vision_reference_ready = False
         return True
     if up in ('POS', 'P') or re.fullmatch(r'[XYZB]\s*-?\d+', up) or up.startswith(('G0', 'M0')):
         cmd = normalize_motion_command(line)
@@ -272,6 +283,18 @@ def main():
                 continue
             if up == 'S':
                 show_force_live()
+                continue
+            if up in ('VISION', 'VIS'):
+                run_automatic_vision(ser)
+                continue
+            if up in ('VIS_FAST', 'VISF'):
+                run_automatic_vision(ser, skip_home=True)
+                continue
+            if up == 'VIS_HEAD':
+                run_visual_head(ser)
+                continue
+            if up in ('VIS_HEAD_FAST', 'VIS_HEADF'):
+                run_visual_head(ser, skip_home=True)
                 continue
             match = re.fullmatch(r'A\s*(\d*)', up)
             if match:
