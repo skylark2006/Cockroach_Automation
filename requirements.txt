@@ -1,7 +1,6 @@
-pyserial==3.5
+﻿pyserial==3.5
 numpy
 opencv-python
 pygrabber
 comtypes
 pymodbus>=3.6
-matplotlib

@@ -84,4 +84,3 @@ python -m unittest discover -s tests -v
 - 运行状态：`runtime/drill_state.json`，程序生成，不修改 config
 - 当前：T1=电极、T2=钻孔，`drill_duty=0`（D1 下 Z、钻头不转），限深 2500 步，抬升 2000 步，D3 速度 500 步/秒
 - `Z_STOP` 每次 D1 更新；视觉与转盘原功能保留，`motion_client.py` 的 `DC` 复用同一钻孔核心
-- D1/DC 运行时 `run_drill_test.bat` 会自动弹出 `tools/drill_plot/force_plot.py` 实时力曲线窗口；它只读 CSV，不占用传感器串口
